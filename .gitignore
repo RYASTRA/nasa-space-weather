@@ -215,8 +215,9 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Project-specific
-# local-only design docs (kept out of version control)
-docs/design/
+# Documentation is local-only: the entire docs/ tree (specs, design notes, API references,
+# and every subdirectory) stays out of version control.
+docs/
 
 # macOS
 .DS_Store
