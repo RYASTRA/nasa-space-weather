@@ -120,6 +120,7 @@ def run(dry_run: bool = False) -> list[Episode]:
         if meta_entry.get("issue_number")
     }
 
+    upsert_failed = False
     for episode in actionable:
         title = render.issue_title(episode, events)
         body = render.issue_body(episode, events, issue_numbers)
@@ -127,14 +128,25 @@ def run(dry_run: bool = False) -> list[Episode]:
         if dry_run or sink is None:
             print(f"[dry-run] would upsert {episode.key}: {title}", file=sys.stderr)
             continue
-        result = sink.upsert(episode.key, title, body, labels)
+        try:
+            result = sink.upsert(episode.key, title, body, labels)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            # One Issue failing to post must not sink the whole run: the streak counter
+            # still has to persist, and this episode must re-detect next run rather than be
+            # silently lost. Warn (STDOUT, so Actions surfaces it), flag, and carry on.
+            print(f"::warning::issue upsert failed for {episode.key} ({exc}); will retry next run")
+            upsert_failed = True
+            continue
         episode_state["episodes"][episode.key]["issue_number"] = result["number"]
 
     if not dry_run:
         # Persist BEFORE reporting: `report` may raise, and the streak counter it reads on
         # the next run has to survive a failing run in order to be able to count at all.
+        # A source snapshot is advanced only when the source succeeded AND every Issue this
+        # run upserted cleanly — otherwise a missed Issue would never be re-detected. The
+        # episode key-map and streaks are ALWAYS persisted (they must survive regardless).
         for name, items in (("flares", all_flares), ("cmes", all_cmes), ("storms", all_storms)):
-            if ok[name]:  # a failed source must NOT advance its state
+            if ok[name] and not upsert_failed:  # hold back state if any Issue was lost
                 state.save(state_dir / f"{name}.json", snapshot(items))
         state.save(state_dir / "episodes.json", episode_state)
         _save_meta(state_dir, streaks)
