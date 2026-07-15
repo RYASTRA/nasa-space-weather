@@ -57,9 +57,18 @@ def _cme_lines(cme: CME) -> list[str]:
         # SILENCE READS AS SAFE. Never omit the countdown — say that it is missing.
         lines.append("  - Arrival prediction: **not yet available** (CME not yet analysed).")
         return lines
-    if cme.enlil is None or cme.enlil.arrival_time is None:
+    if cme.enlil is None:
+        # Analysed, but no WSA-Enlil run yet: we have no arrival prediction, so make NO
+        # claim about Earth impact — absence of a prediction is not a prediction of safety.
         lines.append("  - Arrival prediction: **not yet available** (no WSA-Enlil run yet).")
-        lines.append("  - Not currently predicted to reach Earth.")
+        return lines
+    if cme.enlil.arrival_time is None:
+        # A run completed but gave no shock-arrival time. If it still flags Earth impact,
+        # say so LOUDLY — an Earth-directed CME must never render as harmless (spec 8.6).
+        if cme.is_earth_directed:
+            lines.append("  - **Earth impact expected** — shock arrival time not yet estimated.")
+        else:
+            lines.append("  - Analysed: not currently predicted to reach Earth.")
         return lines
     lines.append(f"  - **Predicted Earth arrival: {_stamp(cme.enlil.arrival_time)}**")
     if cme.enlil.predicted_kp is not None:
