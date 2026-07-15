@@ -1,0 +1,9 @@
+{
+  "consecutive_failures": {
+    "cmes": 1,
+    "flares": 1,
+    "storms": 1
+  },
+  "last_run_utc": "2026-07-15T23:12:44.711005+00:00",
+  "schema_version": 1
+}
