@@ -71,10 +71,10 @@ def _arrivals(episodes: list[Episode], events: dict[str, Any]) -> str:
                 continue
             arrival = event.enlil.arrival_time
             kp = event.enlil.predicted_kp
-            kp_text = f" — predicted Kp {kp:.0f}. {aurora_latitude(kp)}" if kp else ""
+            kp_text = f" — predicted Kp {kp:.0f}. {aurora_latitude(kp)}" if kp is not None else ""
             rows.append(
                 f'<li class="sev-{html.escape(episode.severity)}" '
-                f'data-arrival="{arrival.isoformat()}">'
+                f'data-arrival="{html.escape(arrival.isoformat())}">'
                 f"<strong>Arrives {html.escape(_stamp(arrival))}</strong>"
                 f"{html.escape(kp_text)}</li>"
             )
