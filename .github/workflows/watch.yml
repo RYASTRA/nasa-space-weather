@@ -1,0 +1,94 @@
+name: watch
+
+on:
+  schedule:
+    # Hourly. A deliberate departure from nasa-defense's nightly cadence: asteroid close
+    # approaches evolve over days-to-years, but flares, CME arrivals and geomagnetic storms
+    # evolve over HOURS — and aurora chasers need hours of lead time, not days.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Full history so "Commit state" can rebase onto a moved main without tripping
+          # over a shallow boundary. The repo is tiny; this costs nothing.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - run: pip install -e .
+
+      - name: Run watcher
+        env:
+          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python -m nasa_space_weather
+
+      # These run even when the watcher exits non-zero. A failing run has still earned the
+      # state its healthy sources produced, and has still recorded how long the unhealthy
+      # ones have been down — discarding that on the ephemeral runner would re-detect the
+      # same events next run, and would reset the consecutive-failure counter that decides
+      # when an outage becomes a hard failure.
+      - name: Commit state
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          git config user.name "nasa-space-weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add state/
+          if git diff --cached --quiet -- state/; then
+            echo "state unchanged; nothing to commit"
+            exit 0
+          fi
+          git commit -m "chore: update state [skip ci]"
+          # main can move while we run — a human push, or an overlapping dispatch — and a
+          # bare push would then be rejected non-fast-forward, discarding a state commit
+          # whose work is already done. The bot only ever touches state/, so replaying it
+          # on top of whatever landed is always safe.
+          # Explicit refspecs throughout: never depend on the checkout's upstream tracking
+          # config being set up the way we assume.
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            echo "push rejected (attempt ${attempt}/3); rebasing onto origin/${GITHUB_REF_NAME}"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase FETCH_HEAD
+          done
+          echo "::error::could not push state after 3 rebase attempts"
+          exit 1
+
+      - name: Upload Pages artifact
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  publish:
+    needs: watch
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
