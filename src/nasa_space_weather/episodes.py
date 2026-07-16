@@ -104,10 +104,9 @@ def _adjacency(
 
     def add(activity_id: str, event_type: str, severity: str, linked: list[str]) -> None:
         members[activity_id] = Member(activity_id, event_type, severity)
-        # ensure the node exists even with no edges
-        graph[activity_id]  # pylint: disable=pointless-statement
+        # defaultdict access materialises the node even when it has no edges
+        graph[activity_id].update(linked)
         for other in linked:
-            graph[activity_id].add(other)
             graph[other].add(activity_id)
 
     for flare in flares:

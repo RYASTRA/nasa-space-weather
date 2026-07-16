@@ -97,9 +97,8 @@ def _event_lines(event: Any) -> list[str]:
     return []
 
 
-def issue_title(episode: Episode, events: dict[str, Any]) -> str:
-    # pylint: disable=unused-argument
-    # `events` required by interface; not used in title generation.
+def issue_title(episode: Episode, _events: dict[str, Any]) -> str:
+    # `_events` kept for interface symmetry with issue_body/labels_for; unused in titles.
     present = {m.event_type for m in episode.members}
     if "GST" in present:
         headline = "Geomagnetic storm"
