@@ -78,7 +78,6 @@ def _save_meta(state_dir: Path, streaks: dict[str, int]) -> None:
         {
             "schema_version": config.SCHEMA_VERSION,
             "last_run_utc": _now(),
-            "cold_start": False,
             "consecutive_failures": streaks,
         },
     )
@@ -89,7 +88,6 @@ def run(dry_run: bool = False) -> list[Episode]:
     state_dir = config.STATE_DIR
     meta = state.load(state_dir / "meta.json")
     streaks: dict[str, int] = dict(meta.get("consecutive_failures") or {})
-    is_cold_start = meta.get("cold_start", True)
 
     fetched, ok = _fetch_all()
     for name, succeeded in ok.items():
@@ -115,15 +113,7 @@ def run(dry_run: bool = False) -> list[Episode]:
         if ep.severity != "info" and any(m.activity_id in delta_ids for m in ep.members)
     ]
 
-    # First ever run: seed the baseline from the fetch window but create NO Issues, so the
-    # watcher never floods the repo with the whole backlog. Real alerting starts next run.
-    sink = None if (dry_run or is_cold_start) else GitHubIssues.from_env()
-    if is_cold_start and not dry_run:
-        print(
-            f"::warning::cold start — seeding baseline from the last "
-            f"{config.FETCH_LOOKBACK_DAYS} days and suppressing {len(actionable)} initial "
-            f"Issue(s); real alerts begin next run"
-        )
+    sink = None if dry_run else GitHubIssues.from_env()
     issue_numbers = {
         key: meta_entry.get("issue_number")
         for key, meta_entry in (episode_state.get("episodes") or {}).items()
@@ -136,8 +126,7 @@ def run(dry_run: bool = False) -> list[Episode]:
         body = render.issue_body(episode, events, issue_numbers)
         labels = render.labels_for(episode, events)
         if dry_run or sink is None:
-            label = "cold-start seed" if is_cold_start else "dry-run"
-            print(f"[{label}] {episode.key}: {title}", file=sys.stderr)
+            print(f"[dry-run] would upsert {episode.key}: {title}", file=sys.stderr)
             continue
         try:
             result = sink.upsert(episode.key, title, body, labels)
