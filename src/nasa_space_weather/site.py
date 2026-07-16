@@ -5,6 +5,7 @@ import html
 from pathlib import Path
 from typing import Any
 
+from . import config
 from .episodes import Episode
 from .models import CME, Storm
 from .render import aurora_latitude
@@ -54,7 +55,8 @@ def _stamp(when: dt.datetime | None) -> str:
     return when.strftime("%Y-%m-%d %H:%M UTC") if when else "unknown"
 
 
-def _arrivals(episodes: list[Episode], events: dict[str, Any]) -> str:
+def _arrivals(episodes: list[Episode], events: dict[str, Any], now: dt.datetime) -> str:
+    cutoff = now - dt.timedelta(hours=config.RELEVANCE_WINDOW_H)
     rows: list[str] = []
     for episode in episodes:
         for member in episode.members:
@@ -62,7 +64,11 @@ def _arrivals(episodes: list[Episode], events: dict[str, Any]) -> str:
             if not isinstance(event, CME):
                 continue
             if not event.has_analysis or event.enlil is None or event.enlil.arrival_time is None:
-                # SILENCE READS AS SAFE — never just drop the row.
+                # SILENCE READS AS SAFE — never just drop the row. But only for a CME that
+                # erupted recently: a stale, still-unanalysed CME has nothing upcoming to warn
+                # about, so it is not forward-looking.
+                if event.start_time is None or event.start_time < cutoff:
+                    continue
                 rows.append(
                     f'<li class="sev-{html.escape(episode.severity)}">CME '
                     f"{html.escape(_stamp(event.start_time))} — "
@@ -70,6 +76,10 @@ def _arrivals(episodes: list[Episode], events: dict[str, Any]) -> str:
                 )
                 continue
             arrival = event.enlil.arrival_time
+            if arrival < cutoff:
+                # Predicted arrival already came and went well outside the window — this
+                # CME's effects are over, so it no longer belongs on a forward-looking page.
+                continue
             kp = event.enlil.predicted_kp
             kp_text = f" — predicted Kp {kp:.0f}. {aurora_latitude(kp)}" if kp is not None else ""
             rows.append(
@@ -81,14 +91,19 @@ def _arrivals(episodes: list[Episode], events: dict[str, Any]) -> str:
     return f"<ul>{''.join(rows)}</ul>" if rows else "<p>Nothing inbound.</p>"
 
 
-def _conditions(episodes: list[Episode], events: dict[str, Any]) -> str:
+def _conditions(episodes: list[Episode], events: dict[str, Any], now: dt.datetime) -> str:
+    cutoff = now - dt.timedelta(hours=config.RELEVANCE_WINDOW_H)
     storms = [
         events[m.activity_id]
         for ep in episodes
         for m in ep.members
         if isinstance(events.get(m.activity_id), Storm)
     ]
-    active = [s for s in storms if s.max_kp is not None]
+    active = [
+        s
+        for s in storms
+        if s.max_kp is not None and s.start_time is not None and s.start_time >= cutoff
+    ]
     if not active:
         return "<p>Geomagnetically quiet.</p>"
     worst = max(active, key=lambda s: s.max_kp or 0)
@@ -100,10 +115,11 @@ def _conditions(episodes: list[Episode], events: dict[str, Any]) -> str:
 
 def render_site(episodes: list[Episode], events: dict[str, Any], out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
+    now = dt.datetime.now(dt.UTC)
     page = _PAGE.format(
-        generated=dt.datetime.now(dt.UTC).strftime("%Y-%m-%d %H:%M UTC"),
-        arrivals=_arrivals(episodes, events),
-        conditions=_conditions(episodes, events),
+        generated=now.strftime("%Y-%m-%d %H:%M UTC"),
+        arrivals=_arrivals(episodes, events, now),
+        conditions=_conditions(episodes, events, now),
         aurora_rows="".join(
             f"<tr><td>{kp}</td><td>{html.escape(t)}</td></tr>" for kp, t in _AURORA_GUIDE
         ),

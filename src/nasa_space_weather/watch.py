@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from . import config, episodes, render, site, state
-from .detect import changed, snapshot
+from .detect import changed, is_active, snapshot
 from .episodes import Episode
 from .sinks.github_issues import GitHubIssues
 from .sources import cmes, flares, storms
@@ -107,10 +107,13 @@ def run(dry_run: bool = False) -> list[Episode]:
         if ok[name]
         for item in changed(state.load(state_dir / f"{name}.json"), items)
     }
+    now = dt.datetime.now(dt.UTC)
     actionable = [
         ep
         for ep in built
-        if ep.severity != "info" and any(m.activity_id in delta_ids for m in ep.members)
+        if ep.severity != "info"
+        and any(m.activity_id in delta_ids for m in ep.members)
+        and any(is_active(events.get(m.activity_id), now) for m in ep.members)
     ]
 
     sink = None if dry_run else GitHubIssues.from_env()

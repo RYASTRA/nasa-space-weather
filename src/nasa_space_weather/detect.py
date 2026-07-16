@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from typing import Any, Protocol
 
 from . import config
@@ -47,6 +48,31 @@ def storm_severity(storm: Storm) -> str:
     if storm.max_kp >= config.GST_ALERT_MIN_KP:
         return "high"
     return "info"
+
+
+def is_active(event: object, now: dt.datetime) -> bool:
+    """True when an event's effects are still upcoming or recent — the rule that makes this a
+    forecast/nowcast instead of a history dump. A CME is judged by its predicted Earth arrival
+    (a FUTURE arrival is the whole point of the forecast), falling back to eruption time before
+    it is analysed; a storm and a flare by when they occurred. Anything older than
+    RELEVANCE_WINDOW_H (effects already over) is not active; future timestamps always pass.
+    """
+    when: dt.datetime | None
+    if isinstance(event, CME):
+        when = (
+            event.enlil.arrival_time
+            if (event.enlil and event.enlil.arrival_time)
+            else event.start_time
+        )
+    elif isinstance(event, Storm):
+        when = event.start_time
+    elif isinstance(event, Flare):
+        when = event.peak_time
+    else:
+        return False
+    if when is None:
+        return False
+    return when >= now - dt.timedelta(hours=config.RELEVANCE_WINDOW_H)
 
 
 def snapshot(items: list[_Event]) -> dict[str, dict[str, Any]]:

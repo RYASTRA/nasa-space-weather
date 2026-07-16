@@ -27,6 +27,13 @@ GST_CRITICAL_KP = 7.0  # G3 — aurora reaches ~45 deg; satellite drag/charging
 # --- Fetch window ---
 FETCH_LOOKBACK_DAYS = 30  # DONKI's own default, and its maximum range
 
+# --- Relevance window (forward-looking) ---
+# This is a FORECAST/nowcast: alert only on what's incoming or recent. An event qualifies if its
+# effects are still ahead of us (a predicted CME arrival in the FUTURE) or within this many hours
+# in the past (a storm/flare that just happened). Anything older — effects already over — is
+# ignored. Future timestamps always pass; this bound only governs how far back "recent" reaches.
+RELEVANCE_WINDOW_H = 72
+
 # --- HTTP ---
 # Retries must span enough wall clock to OUTLAST an upstream gateway blip — that is what
 # defeats them, not the attempt count. Equal-jitter backoff over 5 attempts spans 7.5-15s.
