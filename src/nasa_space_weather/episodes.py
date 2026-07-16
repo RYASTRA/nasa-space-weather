@@ -192,12 +192,12 @@ def assemble(
         members = [member_index[a] for a in sorted(activity_ids)]
         regions = sorted(
             {
-                region_of[a]
+                region
                 for a in activity_ids
-                if region_of.get(a) is not None and region_of[a] in swarm_regions
+                if (region := region_of.get(a)) is not None and region in swarm_regions
             }
         )
-        kps = [kp_of[a] for a in activity_ids if kp_of.get(a) is not None]
+        kps = [kp for a in activity_ids if (kp := kp_of.get(a)) is not None]
         related = sorted(cluster_keys[key] - {key})
         out.append(
             Episode(

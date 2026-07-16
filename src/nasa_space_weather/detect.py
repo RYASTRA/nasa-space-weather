@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Sequence
 from typing import Any, Protocol
 
 from . import config
@@ -75,11 +76,11 @@ def is_active(event: object, now: dt.datetime) -> bool:
     return when >= now - dt.timedelta(hours=config.RELEVANCE_WINDOW_H)
 
 
-def snapshot(items: list[_Event]) -> dict[str, dict[str, Any]]:
+def snapshot(items: Sequence[_Event]) -> dict[str, dict[str, Any]]:
     return {item.activity_id: item.to_state() for item in items}
 
 
-def changed(previous: dict[str, dict[str, Any]], current: list[_Event]) -> list[_Event]:
+def changed(previous: dict[str, dict[str, Any]], current: Sequence[_Event]) -> list[_Event]:
     """New items, plus items whose state materially differs from the snapshot.
 
     Comparing whole state dicts (rather than hand-picking fields) means a CME that gains an

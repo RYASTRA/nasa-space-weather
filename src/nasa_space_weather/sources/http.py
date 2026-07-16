@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 import sys
 import time
+from typing import Any
 
 import httpx
 
@@ -34,7 +35,7 @@ def _backoff_s(attempt: int) -> float:
     return ceiling / 2 + random.uniform(0, ceiling / 2)
 
 
-def get_json(url: str, params: dict | None = None) -> dict:
+def get_json(url: str, params: dict | None = None) -> Any:
     last_exc: Exception | None = None
     for attempt in range(config.HTTP_RETRIES):
         requested: float | None = None
