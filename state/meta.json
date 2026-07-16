@@ -1,9 +1,9 @@
 {
   "consecutive_failures": {
-    "cmes": 2,
-    "flares": 2,
-    "storms": 2
+    "cmes": 3,
+    "flares": 3,
+    "storms": 3
   },
-  "last_run_utc": "2026-07-16T00:10:17.154431+00:00",
+  "last_run_utc": "2026-07-16T03:36:57.949106+00:00",
   "schema_version": 1
 }
