@@ -63,8 +63,11 @@ def _stamp(when: dt.datetime | None) -> str:
 
 
 def _arrivals(episodes: list[Episode], events: dict[str, Any], now: dt.datetime) -> str:
+    # pylint: disable=too-many-locals
     cutoff = now - dt.timedelta(hours=config.RELEVANCE_WINDOW_H)
-    rows: list[str] = []
+    rank = {"info": 0, "high": 1, "critical": 2}
+    pending: list[str] = []
+    best: dict[str, tuple[int, str]] = {}  # arrival iso → (severity rank, row)
     for episode in episodes:
         for member in episode.members:
             event = events.get(member.activity_id)
@@ -81,8 +84,8 @@ def _arrivals(episodes: list[Episode], events: dict[str, Any], now: dt.datetime)
                     f"{html.escape(_stamp(event.start_time))} — "
                     f"<strong>arrival prediction not yet available</strong></li>"
                 )
-                if row not in rows:  # linked CMEs can duplicate a row — one is enough
-                    rows.append(row)
+                if row not in pending:  # linked CMEs can duplicate a row — one is enough
+                    pending.append(row)
                 continue
             arrival = event.enlil.arrival_time
             if arrival < cutoff:
@@ -100,8 +103,14 @@ def _arrivals(episodes: list[Episode], events: dict[str, Any], now: dt.datetime)
                 f"<strong>{verb} {html.escape(_stamp(arrival))}</strong>"
                 f"{html.escape(kp_text)}</li>"
             )
-            if row not in rows:  # linked CMEs sharing one Enlil run — one row is enough
-                rows.append(row)
+            # One physical shock, one row: DONKI often carries several catalog entries whose
+            # Enlil runs converge on the same arrival moment. Keep the severest telling.
+            iso = arrival.isoformat()
+            member_rank = rank.get(episode.severity, 0)
+            prev = best.get(iso)
+            if prev is None or member_rank > prev[0]:
+                best[iso] = (member_rank, row)
+    rows = [row for _, row in best.values()] + pending
     return f"<ul>{''.join(rows)}</ul>" if rows else "<p>Nothing inbound.</p>"
 
 
