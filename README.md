@@ -10,7 +10,8 @@ idempotent Issues + optional fan-out + static Pages status site. No servers, no
 database, and **no LLM in the alert path** (deterministic briefings, no hallucination
 risk).
 
-> **Status: 🚧 pre-development (design phase) — founded 2026-07-13.**
+> **Status: ✅ live — watching DONKI hourly.**
+> **Quick look:** <https://ryastra.github.io/nasa-space-weather/>
 
 ## The unmet need
 
