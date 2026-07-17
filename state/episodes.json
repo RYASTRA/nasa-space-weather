@@ -813,11 +813,11 @@
       "related_keys": []
     },
     "episode:2026-07-11T01:23:00-CME-001": {
-      "issue_number": null,
+      "issue_number": 1,
       "related_keys": []
     },
     "episode:2026-07-11T04:38:00-CME-001": {
-      "issue_number": null,
+      "issue_number": 2,
       "related_keys": []
     },
     "episode:2026-07-11T16:09:00-CME-001": {
@@ -829,11 +829,11 @@
       "related_keys": []
     },
     "episode:2026-07-12T01:14:00-CME-001": {
-      "issue_number": null,
+      "issue_number": 3,
       "related_keys": []
     },
     "episode:2026-07-12T02:12:00-CME-001": {
-      "issue_number": null,
+      "issue_number": 4,
       "related_keys": []
     },
     "episode:2026-07-12T04:23:00-CME-001": {
