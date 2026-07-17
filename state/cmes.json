@@ -2285,5 +2285,15 @@
     "linked": [],
     "speed_kms": 490.0,
     "start_time": "2026-07-16T10:36:00+00:00"
+  },
+  "2026-07-17T00:12:00-CME-001": {
+    "activity_id": "2026-07-17T00:12:00-CME-001",
+    "earth_directed": false,
+    "enlil": null,
+    "has_analysis": true,
+    "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/CME/47620/-1",
+    "linked": [],
+    "speed_kms": 520.0,
+    "start_time": "2026-07-17T00:12:00+00:00"
   }
 }
