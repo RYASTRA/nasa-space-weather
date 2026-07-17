@@ -62,6 +62,20 @@ def _stamp(when: dt.datetime | None) -> str:
     return when.strftime("%Y-%m-%d %H:%M UTC") if when else "unknown"
 
 
+def _no_arrival_status(cme: CME) -> str:
+    """Why this CME has no arrival countdown — four DISTINCT states, wording shared with
+    render.py. The models.py invariant applies on the page too: 'analysed, harmless' and
+    'not yet analysed' must never look the same to a reader, and an Earth-directed CME
+    must never render as merely pending (spec 8.6)."""
+    if not cme.has_analysis:
+        return "<strong>arrival prediction not yet available</strong> (not yet analysed)"
+    if cme.enlil is None:
+        return "<strong>arrival prediction not yet available</strong> (no WSA-Enlil run yet)"
+    if cme.enlil.is_earth_gb:
+        return "<strong>Earth impact expected</strong> — shock arrival time not yet estimated"
+    return "analysed: not currently predicted to reach Earth"
+
+
 def _arrivals(episodes: list[Episode], events: dict[str, Any], now: dt.datetime) -> str:
     # pylint: disable=too-many-locals
     cutoff = now - dt.timedelta(hours=config.RELEVANCE_WINDOW_H)
@@ -75,14 +89,14 @@ def _arrivals(episodes: list[Episode], events: dict[str, Any], now: dt.datetime)
                 continue
             if not event.has_analysis or event.enlil is None or event.enlil.arrival_time is None:
                 # SILENCE READS AS SAFE — never just drop the row. But only for a CME that
-                # erupted recently: a stale, still-unanalysed CME has nothing upcoming to warn
-                # about, so it is not forward-looking.
+                # erupted recently: a stale row has nothing upcoming to warn about, so it
+                # is not forward-looking.
                 if event.start_time is None or event.start_time < cutoff:
                     continue
                 row = (
                     f'<li class="sev-{html.escape(episode.severity)}">CME '
                     f"{html.escape(_stamp(event.start_time))} — "
-                    f"<strong>arrival prediction not yet available</strong></li>"
+                    f"{_no_arrival_status(event)}</li>"
                 )
                 if row not in pending:  # linked CMEs can duplicate a row — one is enough
                     pending.append(row)
