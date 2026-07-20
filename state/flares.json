@@ -634,7 +634,9 @@
     "class_type": "M1.1",
     "flr_id": "2026-07-20T19:15:00-FLR-001",
     "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/47690/-1",
-    "linked": [],
+    "linked": [
+      "2026-07-20T19:53:00-CME-001"
+    ],
     "peak_time": "2026-07-20T19:20:00+00:00"
   }
 }
