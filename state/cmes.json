@@ -2254,5 +2254,33 @@
     "linked": [],
     "speed_kms": 728.0,
     "start_time": "2026-07-20T21:12:00+00:00"
+  },
+  "2026-07-21T06:23:00-CME-001": {
+    "activity_id": "2026-07-21T06:23:00-CME-001",
+    "earth_directed": false,
+    "enlil": {
+      "arrival_time": null,
+      "is_earth_gb": false,
+      "predicted_kp": null
+    },
+    "has_analysis": true,
+    "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/CME/47708/-1",
+    "linked": [],
+    "speed_kms": 658.0,
+    "start_time": "2026-07-21T06:23:00+00:00"
+  },
+  "2026-07-21T07:48:00-CME-001": {
+    "activity_id": "2026-07-21T07:48:00-CME-001",
+    "earth_directed": false,
+    "enlil": {
+      "arrival_time": null,
+      "is_earth_gb": false,
+      "predicted_kp": null
+    },
+    "has_analysis": true,
+    "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/CME/47711/-1",
+    "linked": [],
+    "speed_kms": 601.0,
+    "start_time": "2026-07-21T07:48:00+00:00"
   }
 }
