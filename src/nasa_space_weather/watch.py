@@ -154,7 +154,9 @@ def run(dry_run: bool = False) -> list[Episode]:
         state.save(state_dir / "episodes.json", episode_state)
         _save_meta(state_dir, streaks)
         if config.SITE_ENABLED:
-            site.render_site(built, events, config.SITE_DIR)
+            # status.json's ok means "data collection succeeded" — Issue-upsert
+            # plumbing failures are a notification concern, not a data one
+            site.render_site(built, events, config.SITE_DIR, sources_ok=all(ok.values()))
 
     report(streaks)
     return actionable

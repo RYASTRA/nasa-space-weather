@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import html
+import json
 from pathlib import Path
 from typing import Any
 
@@ -150,9 +151,22 @@ def _conditions(episodes: list[Episode], events: dict[str, Any], now: dt.datetim
     )
 
 
-def render_site(episodes: list[Episode], events: dict[str, Any], out_dir: Path) -> Path:
+def render_site(
+    episodes: list[Episode],
+    events: dict[str, Any],
+    out_dir: Path,
+    *,
+    sources_ok: bool = True,
+) -> Path:
+    # imported here, not at module top, so status can reuse this module freely
+    from . import status  # pylint: disable=import-outside-toplevel,cyclic-import
+
     out_dir.mkdir(parents=True, exist_ok=True)
     now = dt.datetime.now(dt.UTC)
+    (out_dir / "status.json").write_text(
+        json.dumps(status.build(episodes, events, now, sources_ok=sources_ok), indent=1) + "\n",
+        encoding="utf-8",
+    )
     page = _PAGE.format(
         generated=now.strftime("%Y-%m-%d %H:%M UTC"),
         arrivals=_arrivals(episodes, events, now),
