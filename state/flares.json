@@ -1,24 +1,4 @@
 {
-  "2026-06-21T02:25:00-FLR-001": {
-    "active_region": 14473,
-    "class_type": "M2.6",
-    "flr_id": "2026-06-21T02:25:00-FLR-001",
-    "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/46954/-1",
-    "linked": [
-      "2026-06-21T03:36:00-CME-001"
-    ],
-    "peak_time": "2026-06-21T02:46:00+00:00"
-  },
-  "2026-06-21T19:17:00-FLR-001": {
-    "active_region": 14473,
-    "class_type": "M6.8",
-    "flr_id": "2026-06-21T19:17:00-FLR-001",
-    "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/46965/-1",
-    "linked": [
-      "2026-06-21T20:00:00-CME-001"
-    ],
-    "peak_time": "2026-06-21T19:29:00+00:00"
-  },
   "2026-06-29T21:13:00-FLR-001": {
     "active_region": 14479,
     "class_type": "M1.4",
