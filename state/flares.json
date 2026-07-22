@@ -616,5 +616,13 @@
     "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/47722/-1",
     "linked": [],
     "peak_time": "2026-07-21T17:27:00+00:00"
+  },
+  "2026-07-22T06:27:00-FLR-001": {
+    "active_region": 14493,
+    "class_type": "M3.6",
+    "flr_id": "2026-07-22T06:27:00-FLR-001",
+    "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/47729/-1",
+    "linked": [],
+    "peak_time": "2026-07-22T06:35:00+00:00"
   }
 }
