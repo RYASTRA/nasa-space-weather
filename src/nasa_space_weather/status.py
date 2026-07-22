@@ -1,8 +1,8 @@
 """Observatory status contract (schema 1) for this site.
 
 Emits the small, stable status.json the NASA Observatory reads from every
-fleet site's root. Contract spec:
-https://github.com/RYASTRA/nasa-observatory/blob/main/docs/superpowers/specs/2026-07-22-nasa-observatory-design.md
+fleet site's root. The contract is specified in the nasa-observatory
+repo: docs/superpowers/specs/2026-07-22-nasa-observatory-design.md
 
 The tile must retell the page, not reinterpret it: active-storm, relevance
 window, and Earth-directed-CME semantics are the ones site.py already uses.
