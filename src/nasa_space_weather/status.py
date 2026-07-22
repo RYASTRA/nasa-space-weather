@@ -58,7 +58,8 @@ def build(
     evs = _episode_events(episodes, events)
 
     storms = [
-        s for s in evs
+        s
+        for s in evs
         if isinstance(s, Storm)
         and s.max_kp is not None
         and s.start_time is not None
@@ -72,7 +73,8 @@ def build(
 
     week_ago = now - dt.timedelta(days=7)
     big_flares = [
-        f for f in evs
+        f
+        for f in evs
         if isinstance(f, Flare)
         and f.peak_time is not None
         and f.peak_time >= week_ago
@@ -84,11 +86,18 @@ def build(
     for event in evs:
         if isinstance(event, Flare) and event.peak_time is not None and event.peak_time >= week_ago:
             region = f" — AR{event.active_region}" if event.active_region else ""
-            items.append((event.peak_time, {"text": f"{event.class_type} flare{region}", "url": event.link}))
+            items.append(
+                (event.peak_time, {"text": f"{event.class_type} flare{region}", "url": event.link})
+            )
     for storm in storms:
         start = storm.start_time
         if start is not None:  # guaranteed by the filter above; keeps the narrowing local
-            items.append((start, {"text": f"Geomagnetic storm — max Kp {storm.max_kp:.0f}", "url": storm.link}))
+            items.append(
+                (
+                    start,
+                    {"text": f"Geomagnetic storm — max Kp {storm.max_kp:.0f}", "url": storm.link},
+                )
+            )
     for cme in arrivals:
         if cme.enlil is None or cme.enlil.arrival_time is None:
             continue  # _pending_arrivals guarantees otherwise; keeps the narrowing local
@@ -96,7 +105,15 @@ def build(
         kp = cme.enlil.predicted_kp
         verb = "expected" if arrival >= now else "arrived"
         kp_text = f" — Kp {kp:.0f}, {aurora_latitude(kp)}" if kp is not None else ""
-        items.append((arrival, {"text": f"CME arrival {verb} {arrival:%b %-d %H:%M} UTC{kp_text}", "url": cme.link}))
+        items.append(
+            (
+                arrival,
+                {
+                    "text": f"CME arrival {verb} {arrival:%b %-d %H:%M} UTC{kp_text}",
+                    "url": cme.link,
+                },
+            )
+        )
     items.sort(key=lambda pair: pair[0], reverse=True)
 
     return {
@@ -113,7 +130,11 @@ def build(
             {"label": "CME arrivals pending", "value": str(len(arrivals))},
         ],
         "items": [
-            {"when_utc": when.strftime("%Y-%m-%dT%H:%M:%SZ"), "text": item["text"][:140], "url": item["url"]}
+            {
+                "when_utc": when.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "text": item["text"][:140],
+                "url": item["url"],
+            }
             for when, item in items[:5]
         ],
     }
