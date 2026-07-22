@@ -99,6 +99,8 @@ def test_earthbound_cme_becomes_metric_and_item() -> None:
     assert len(arrival_items) == 1
     assert "Kp 6" in arrival_items[0]["text"]
     assert arrival_items[0]["url"] == "https://example.test/cme"
+    # when_utc is rendered beside the text — the text must not repeat it
+    assert "UTC" not in arrival_items[0]["text"]
 
 
 def test_items_are_bounded_and_newest_first() -> None:

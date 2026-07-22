@@ -103,17 +103,11 @@ def build(
             continue  # _pending_arrivals guarantees otherwise; keeps the narrowing local
         arrival = cme.enlil.arrival_time
         kp = cme.enlil.predicted_kp
+        # the consumer renders when_utc beside the text, so the text must NOT
+        # repeat the timestamp — only the tense the reader can't infer from it
         verb = "expected" if arrival >= now else "arrived"
         kp_text = f" — Kp {kp:.0f}, {aurora_latitude(kp)}" if kp is not None else ""
-        items.append(
-            (
-                arrival,
-                {
-                    "text": f"CME arrival {verb} {arrival:%b %-d %H:%M} UTC{kp_text}",
-                    "url": cme.link,
-                },
-            )
-        )
+        items.append((arrival, {"text": f"CME arrival {verb}{kp_text}", "url": cme.link}))
     items.sort(key=lambda pair: pair[0], reverse=True)
 
     return {
