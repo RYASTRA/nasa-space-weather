@@ -1,3 +1,5 @@
+"""Dataclasses for DONKI flare, CME, and geomagnetic-storm events, plus their parsers."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -46,13 +48,16 @@ class Flare:
 
     @property
     def activity_id(self) -> str:
+        """The DONKI activity ID, under the name every event type shares."""
         return self.flr_id
 
     @property
     def rank(self) -> int:
+        """Ordinal strength of this flare's class letter, for threshold comparisons."""
         return flare_class_rank(self.class_type)
 
     def to_state(self) -> dict[str, Any]:
+        """Serialise the fields that change detection compares between runs."""
         return {
             "flr_id": self.flr_id,
             "peak_time": self.peak_time.isoformat() if self.peak_time else None,
@@ -73,6 +78,7 @@ class EnlilRun:
     is_earth_gb: bool
 
     def to_state(self) -> dict[str, Any]:
+        """Serialise the fields that change detection compares between runs."""
         return {
             "arrival_time": self.arrival_time.isoformat() if self.arrival_time else None,
             "predicted_kp": self.predicted_kp,
@@ -102,6 +108,7 @@ class CME:
         return self.enlil.arrival_time is not None or self.enlil.is_earth_gb
 
     def to_state(self) -> dict[str, Any]:
+        """Serialise the fields that change detection compares between runs."""
         return {
             "activity_id": self.activity_id,
             "start_time": self.start_time.isoformat() if self.start_time else None,
@@ -126,9 +133,11 @@ class Storm:
 
     @property
     def activity_id(self) -> str:
+        """The DONKI activity ID, under the name every event type shares."""
         return self.gst_id
 
     def to_state(self) -> dict[str, Any]:
+        """Serialise the fields that change detection compares between runs."""
         return {
             "gst_id": self.gst_id,
             "start_time": self.start_time.isoformat() if self.start_time else None,
@@ -139,6 +148,7 @@ class Storm:
 
 
 def parse_flares(raw: list[dict[str, Any]]) -> list[Flare]:
+    """Convert raw DONKI FLR records into Flare objects, skipping any with no flare ID."""
     out: list[Flare] = []
     for item in raw:
         flr_id = item.get("flrID")
@@ -196,6 +206,11 @@ def _enlil_from(analysis: dict[str, Any]) -> EnlilRun | None:
 
 
 def parse_cmes(raw: list[dict[str, Any]]) -> list[CME]:
+    """Convert raw DONKI CME records into CME objects, skipping any with no activity ID.
+
+    Speed and the Earth-arrival prediction are taken from the analysis DONKI marks most
+    accurate, falling back to the first one present.
+    """
     out: list[CME] = []
     for item in raw:
         activity_id = item.get("activityID")
@@ -219,6 +234,11 @@ def parse_cmes(raw: list[dict[str, Any]]) -> list[CME]:
 
 
 def parse_storms(raw: list[dict[str, Any]]) -> list[Storm]:
+    """Convert raw DONKI GST records into Storm objects, skipping any with no storm ID.
+
+    `max_kp` is the highest reading across the storm's whole Kp series, which is the value
+    severity and the aurora latitude estimate are both derived from.
+    """
     out: list[Storm] = []
     for item in raw:
         gst_id = item.get("gstID")

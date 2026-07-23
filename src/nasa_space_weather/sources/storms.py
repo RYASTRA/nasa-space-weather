@@ -1,3 +1,5 @@
+"""DONKI GST endpoint: fetch geomagnetic storms over the configured window."""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -14,5 +16,6 @@ def _window() -> dict[str, str]:
 
 
 def fetch() -> list[Storm]:
+    """Fetch and parse geomagnetic storms in the look-back window."""
     params = {**_window(), "api_key": config.nasa_api_key()}
     return parse_storms(get_json(config.GST_API, params=params))

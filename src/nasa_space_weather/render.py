@@ -1,3 +1,5 @@
+"""Issue title, label, and body templates for an episode."""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -99,6 +101,7 @@ def _event_lines(event: Any) -> list[str]:
 
 def issue_title(episode: Episode, _events: dict[str, Any]) -> str:
     # `_events` kept for interface symmetry with issue_body/labels_for; unused in titles.
+    """Headline for an episode's issue, named for the most consequential event in it."""
     present = {m.event_type for m in episode.members}
     if "GST" in present:
         headline = "Geomagnetic storm"
@@ -112,6 +115,7 @@ def issue_title(episode: Episode, _events: dict[str, Any]) -> str:
 
 
 def labels_for(episode: Episode, events: dict[str, Any]) -> list[str]:
+    """Issue labels for an episode, tagging event types, flare swarms, and aurora-class storms."""
     labels = [BASE_LABEL, f"severity-{episode.severity}"]
     for member in episode.members:
         label = _TYPE_LABEL.get(member.event_type)
@@ -128,6 +132,7 @@ def labels_for(episode: Episode, events: dict[str, Any]) -> list[str]:
 
 
 def issue_body(episode: Episode, events: dict[str, Any], issue_numbers: dict[str, int]) -> str:
+    """Full issue body for an episode, including its key marker and any linked issue numbers."""
     parts: list[str] = [key_marker(episode.key), ""]
     parts.append(f"**Severity: {episode.severity}**")
     parts.append("")

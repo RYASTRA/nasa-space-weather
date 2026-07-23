@@ -1,3 +1,5 @@
+"""Static HTML dashboard rendered from the current episodes and events."""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -159,6 +161,11 @@ def render_site(
     sources_ok: bool = True,
 ) -> Path:
     # imported here, not at module top, so status can reuse this module freely
+    """Write the dashboard and status.json into `out_dir`, returning the HTML path.
+
+    `sources_ok` is threaded through to status.json so a consumer can tell a genuinely quiet
+    sun from a run where the upstream fetch failed.
+    """
     from . import status  # pylint: disable=import-outside-toplevel,cyclic-import
 
     out_dir.mkdir(parents=True, exist_ok=True)
