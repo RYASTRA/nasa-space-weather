@@ -1997,7 +1997,9 @@
     },
     "has_analysis": true,
     "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/CME/47679/-1",
-    "linked": [],
+    "linked": [
+      "2026-07-23T17:09:00-IPS-001"
+    ],
     "speed_kms": 499.0,
     "start_time": "2026-07-20T13:26:00+00:00"
   },
