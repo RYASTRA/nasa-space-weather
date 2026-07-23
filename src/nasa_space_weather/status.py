@@ -46,6 +46,45 @@ def _pending_arrivals(evs: list[Any], now: dt.datetime) -> list[CME]:
     return list(by_arrival.values())
 
 
+def _timeline(
+    evs: list[Any],
+    storms: list[Storm],
+    arrivals: list[CME],
+    *,
+    week_ago: dt.datetime,
+    now: dt.datetime,
+) -> list[tuple[dt.datetime, dict]]:
+    """The newest-first timeline rows: recent flares, active storms, and CME arrivals."""
+    items: list[tuple[dt.datetime, dict]] = []
+    for event in evs:
+        if isinstance(event, Flare) and event.peak_time is not None and event.peak_time >= week_ago:
+            region = f" — AR{event.active_region}" if event.active_region else ""
+            items.append(
+                (event.peak_time, {"text": f"{event.class_type} flare{region}", "url": event.link})
+            )
+    for storm in storms:
+        start = storm.start_time
+        if start is not None:  # guaranteed by the filter above; keeps the narrowing local
+            items.append(
+                (
+                    start,
+                    {"text": f"Geomagnetic storm — max Kp {storm.max_kp:.0f}", "url": storm.link},
+                )
+            )
+    for cme in arrivals:
+        if cme.enlil is None or cme.enlil.arrival_time is None:
+            continue  # _pending_arrivals guarantees otherwise; keeps the narrowing local
+        arrival = cme.enlil.arrival_time
+        kp = cme.enlil.predicted_kp
+        # the consumer renders when_utc beside the text, so the text must NOT
+        # repeat the timestamp — only the tense the reader can't infer from it
+        verb = "expected" if arrival >= now else "arrived"
+        kp_text = f" — Kp {kp:.0f}, {aurora_latitude(kp)}" if kp is not None else ""
+        items.append((arrival, {"text": f"CME arrival {verb}{kp_text}", "url": cme.link}))
+    items.sort(key=lambda pair: pair[0], reverse=True)
+    return items
+
+
 def build(
     episodes: list[Episode],
     events: dict[str, Any],
@@ -82,33 +121,7 @@ def build(
     ]
     arrivals = _pending_arrivals(evs, now)
 
-    items: list[tuple[dt.datetime, dict]] = []
-    for event in evs:
-        if isinstance(event, Flare) and event.peak_time is not None and event.peak_time >= week_ago:
-            region = f" — AR{event.active_region}" if event.active_region else ""
-            items.append(
-                (event.peak_time, {"text": f"{event.class_type} flare{region}", "url": event.link})
-            )
-    for storm in storms:
-        start = storm.start_time
-        if start is not None:  # guaranteed by the filter above; keeps the narrowing local
-            items.append(
-                (
-                    start,
-                    {"text": f"Geomagnetic storm — max Kp {storm.max_kp:.0f}", "url": storm.link},
-                )
-            )
-    for cme in arrivals:
-        if cme.enlil is None or cme.enlil.arrival_time is None:
-            continue  # _pending_arrivals guarantees otherwise; keeps the narrowing local
-        arrival = cme.enlil.arrival_time
-        kp = cme.enlil.predicted_kp
-        # the consumer renders when_utc beside the text, so the text must NOT
-        # repeat the timestamp — only the tense the reader can't infer from it
-        verb = "expected" if arrival >= now else "arrived"
-        kp_text = f" — Kp {kp:.0f}, {aurora_latitude(kp)}" if kp is not None else ""
-        items.append((arrival, {"text": f"CME arrival {verb}{kp_text}", "url": cme.link}))
-    items.sort(key=lambda pair: pair[0], reverse=True)
+    items = _timeline(evs, storms, arrivals, week_ago=week_ago, now=now)
 
     return {
         "schema": 1,

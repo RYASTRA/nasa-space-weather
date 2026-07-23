@@ -1,3 +1,5 @@
+"""Severity scoring, relevance windowing, and snapshot diffing for DONKI events."""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -9,10 +11,18 @@ from .models import CME, Flare, Storm, flare_class_rank
 
 
 class _Event(Protocol):
-    @property
-    def activity_id(self) -> str: ...
+    # The ellipsis bodies are what make these structural stubs rather than methods that
+    # return None; pylint reads them as redundant beside the docstring, type checkers do not.
+    # pylint: disable=unnecessary-ellipsis
 
-    def to_state(self) -> dict[str, Any]: ...
+    @property
+    def activity_id(self) -> str:
+        """The DONKI activity ID identifying this event."""
+        ...
+
+    def to_state(self) -> dict[str, Any]:
+        """Serialise this event for snapshot comparison."""
+        ...
 
 
 def flare_severity(flare: Flare) -> str:
@@ -42,6 +52,11 @@ def cme_severity(cme: CME) -> str:
 
 
 def storm_severity(storm: Storm) -> str:
+    """Severity for a geomagnetic storm, from its peak Kp index.
+
+    A storm with no Kp reading yet scores `info` rather than being guessed at — DONKI
+    publishes the record before the index series is populated.
+    """
     if storm.max_kp is None:
         return "info"
     if storm.max_kp >= config.GST_CRITICAL_KP:
@@ -77,6 +92,7 @@ def is_active(event: object, now: dt.datetime) -> bool:
 
 
 def snapshot(items: Sequence[_Event]) -> dict[str, dict[str, Any]]:
+    """Map events by activity ID to their serialised state, to persist as the next baseline."""
     return {item.activity_id: item.to_state() for item in items}
 
 

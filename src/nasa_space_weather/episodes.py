@@ -1,3 +1,10 @@
+"""Grouping of causally linked DONKI events into single episodes.
+
+A flare, the CME it launched, and the storm that CME caused are one story, and DONKI's own
+`linkedEvents` graph says which events belong together — so the grouping is read from the
+upstream data rather than inferred here.
+"""
+
 from __future__ import annotations
 
 import datetime as dt
