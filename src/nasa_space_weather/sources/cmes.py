@@ -1,3 +1,5 @@
+"""DONKI CME endpoint: fetch coronal mass ejections with their WSA-Enlil analyses."""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -17,5 +19,6 @@ def fetch() -> list[CME]:
     # /CME embeds cmeAnalyses[].enlilList[] — speed, isEarthGB, estimatedShockArrivalTime and
     # the kp_* predictions all arrive in this one response. That is why we do not also call
     # /CMEAnalysis or /WSAEnlilSimulations: they would re-fetch data we already hold.
+    """Fetch and parse CMEs, including the embedded arrival predictions, over the window."""
     params = {**_window(), "api_key": config.nasa_api_key()}
     return parse_cmes(get_json(config.CME_API, params=params))

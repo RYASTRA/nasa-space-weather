@@ -1,3 +1,5 @@
+"""Shared HTTP GET with retry, jitter, and Retry-After handling for the DONKI APIs."""
+
 from __future__ import annotations
 
 import random
@@ -36,6 +38,15 @@ def _backoff_s(attempt: int) -> float:
 
 
 def get_json(url: str, params: dict | None = None) -> Any:
+    """GET `url` and return the decoded JSON body, retrying transient failures.
+
+    Retries transport errors, 5xx, and 429 up to `config.HTTP_RETRIES` attempts, honouring a
+    numeric Retry-After when the server sends one and backing off with jitter otherwise. Other
+    4xx responses are client errors and raise immediately.
+
+    Raises:
+        httpx.TransportError | httpx.HTTPStatusError: the last failure, once retries are spent.
+    """
     last_exc: Exception | None = None
     for attempt in range(config.HTTP_RETRIES):
         requested: float | None = None

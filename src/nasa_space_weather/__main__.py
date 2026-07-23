@@ -1,3 +1,5 @@
+"""Command-line entry point: `python -m nasa_space_weather [--dry-run]`."""
+
 from __future__ import annotations
 
 import argparse
@@ -7,6 +9,7 @@ from . import config, watch
 
 
 def main() -> int:
+    """Parse arguments, run one watch cycle, and return a process exit status."""
     parser = argparse.ArgumentParser(prog="nasa_space_weather")
     parser.add_argument(
         "--dry-run",

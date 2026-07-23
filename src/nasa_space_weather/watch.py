@@ -1,3 +1,5 @@
+"""Run orchestration: fetch every source, assemble episodes, emit issues, persist state."""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -85,6 +87,13 @@ def _save_meta(state_dir: Path, streaks: dict[str, int]) -> None:
 
 def run(dry_run: bool = False) -> list[Episode]:
     # pylint: disable=too-many-locals
+    """Run every source once and return the episodes deemed actionable.
+
+    An episode earns an issue only when it contains something new or changed, is rated above
+    `info`, and is still active inside the relevance window — so a quiet re-run of unchanged
+    data emits nothing. Sources that fail have their failure streak incremented rather than
+    their state advanced, so the next run re-detects whatever was missed.
+    """
     state_dir = config.STATE_DIR
     meta = state.load(state_dir / "meta.json")
     streaks: dict[str, int] = dict(meta.get("consecutive_failures") or {})

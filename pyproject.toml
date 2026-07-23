@@ -27,4 +27,4 @@ src = ["src", "tests"]
 source-roots = ["src"]
 
 [tool.pylint."messages control"]
-disable = ["missing-module-docstring", "missing-function-docstring", "too-few-public-methods"]
+disable = ["too-few-public-methods"]
