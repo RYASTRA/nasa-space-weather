@@ -8,6 +8,11 @@ permissions:
 jobs:
   mirror:
     runs-on: ubuntu-latest
+    # Dependabot pushes run with a read-only token and cannot read the
+    # GITLAB_TOKEN secret, so the mirror would always fail auth on them. Skip:
+    # these throwaway branches don't need mirroring, and real pushes to main
+    # (where the secret is available) still mirror normally.
+    if: github.actor != 'dependabot[bot]'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
