@@ -70,8 +70,10 @@ def is_active(event: object, now: dt.datetime) -> bool:
     """True when an event's effects are still upcoming or recent — the rule that makes this a
     forecast/nowcast instead of a history dump. A CME is judged by its predicted Earth arrival
     (a FUTURE arrival is the whole point of the forecast), falling back to eruption time before
-    it is analysed; a storm and a flare by when they occurred. Anything older than
-    RELEVANCE_WINDOW_H (effects already over) is not active; future timestamps always pass.
+    it is analysed; a storm and a flare by when they occurred. An explicit Earth-impact
+    flag remains active when DONKI omits both timestamps: without a time, we cannot safely
+    age out a known impact. Anything older than RELEVANCE_WINDOW_H is not active; future
+    timestamps always pass.
     """
     when: dt.datetime | None
     if isinstance(event, CME):
@@ -80,6 +82,8 @@ def is_active(event: object, now: dt.datetime) -> bool:
             if (event.enlil and event.enlil.arrival_time)
             else event.start_time
         )
+        if when is None:
+            return event.is_earth_directed
     elif isinstance(event, Storm):
         when = event.start_time
     elif isinstance(event, Flare):

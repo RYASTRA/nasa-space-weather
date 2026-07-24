@@ -225,8 +225,5 @@ docs/
 # Subagent-driven-development scratch (briefs, diffs, ledger)
 .superpowers/
 
-# Tests — kept local, not pushed
-/tests/
-
 # Claude local settings
 .claude/

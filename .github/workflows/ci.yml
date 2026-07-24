@@ -20,3 +20,6 @@ jobs:
       - run: ruff format --check .
       - run: ruff check .
       - run: pylint src/
+      - run: pytest -q
+      - run: node --check src/nasa_space_weather/site_assets/site.js
+      - run: node --test tests/site_js_test.cjs

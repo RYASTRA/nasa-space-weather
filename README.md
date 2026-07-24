@@ -6,9 +6,8 @@ predicted arrival windows, and geomagnetic storms with "will I see aurora?" cont
 
 Sibling of [nasa-defense](https://github.com/RYASTRA/nasa-defense) (Planetary-Defense
 Watch): same proven engine — GitHub Actions cron → material-delta detection →
-idempotent Issues + optional fan-out + static Pages status site. No servers, no
-database, and **no LLM in the alert path** (deterministic briefings, no hallucination
-risk).
+idempotent Issues + static Pages status site. No servers, no database, and **no LLM
+in the alert path** (deterministic briefings, no hallucination risk).
 
 > **Status: ✅ live — watching DONKI hourly.**
 > **Quick look:** <https://ryastra.github.io/nasa-space-weather/>
@@ -22,7 +21,7 @@ human-legible alerts: what changed, whether it matters, and what to do about it.
 > "CME left the Sun 14:36 UTC; WSA-Enlil predicts arrival Thursday ~03:00 UTC;
 > Kp 7 expected — aurora plausible down to ~45° latitude; HF radio degraded dayside."
 
-## What it will do
+## What it does
 
 Once per cycle (scheduled GitHub Actions job):
 
@@ -32,10 +31,10 @@ Once per cycle (scheduled GitHub Actions job):
    low-class activity is filtered so alerts stay actionable and rare.
 3. **Raise idempotent GitHub Issues** in plain English with severity labels;
    events update in place as they evolve (flare → CME → arrival window → storm).
-4. **Optionally fan out** high-signal alerts to Slack / Discord / a webhook / email.
-5. **Publish a static status page**: incoming arrivals with countdowns, current
-   conditions, and an aurora-latitude guide.
-6. **Commit the new snapshot** so git history is a tamper-evident ledger.
+4. **Publish a static status page**: future Earth-arrival forecasts and recently
+   passed model times with live countdowns, recent geomagnetic activity,
+   high-signal flare context, and an aurora-latitude guide.
+5. **Commit the new snapshot** so git history is a tamper-evident ledger.
 
 ## Audiences
 

@@ -4,7 +4,7 @@ Emits the small, stable status.json the NASA Observatory reads from every
 fleet site's root. The contract is specified in the nasa-observatory
 repo: docs/superpowers/specs/2026-07-22-nasa-observatory-design.md
 
-The tile must retell the page, not reinterpret it: active-storm, relevance
+The tile must retell the page, not reinterpret it: recent-storm, relevance
 window, and Earth-directed-CME semantics are the ones site.py already uses.
 Bounds: headline <= 120 chars, <= 5 items, item text <= 140 chars.
 """
@@ -14,7 +14,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from . import config
+from . import config, summary
 from .episodes import Episode
 from .models import CME, Flare, Storm
 from .render import aurora_latitude
@@ -22,67 +22,159 @@ from .render import aurora_latitude
 _SITE_URL = "https://ryastra.github.io/nasa-space-weather/"
 
 
-def _episode_events(episodes: list[Episode], events: dict[str, Any]) -> list[Any]:
-    seen: dict[str, Any] = {}
-    for episode in episodes:
-        for member in episode.members:
-            event = events.get(member.activity_id)
-            if event is not None:
-                seen.setdefault(member.activity_id, event)
-    return list(seen.values())
-
-
-def _pending_arrivals(evs: list[Any], now: dt.datetime) -> list[CME]:
-    """Earth-relevant CMEs, one per predicted arrival moment (one shock, one row)."""
-    cutoff = now - dt.timedelta(hours=config.RELEVANCE_WINDOW_H)
-    by_arrival: dict[str, CME] = {}
-    for event in evs:
-        if not isinstance(event, CME) or not event.has_analysis or event.enlil is None:
-            continue
-        arrival = event.enlil.arrival_time
-        if arrival is None or arrival < cutoff:
-            continue
-        by_arrival.setdefault(arrival.isoformat(), event)
-    return list(by_arrival.values())
+def _arrival_timeline(
+    arrivals: list[CME], now: dt.datetime
+) -> tuple[list[tuple[dt.datetime, dict]], list[tuple[dt.datetime, dict]]]:
+    """Separate future model forecasts from recently passed model times."""
+    future: list[tuple[dt.datetime, dict]] = []
+    recent: list[tuple[dt.datetime, dict]] = []
+    for cme in arrivals:
+        if cme.enlil is None or cme.enlil.arrival_time is None:
+            continue  # summary.arrival_buckets guarantees this; keeps narrowing local
+        arrival = cme.enlil.arrival_time
+        kp = cme.enlil.predicted_kp
+        # The consumer renders when_utc beside the text, so the text names the
+        # forecast's status without repeating its timestamp.
+        arrival_text = (
+            "CME arrival forecast" if arrival >= now else "Recent modelled CME arrival time"
+        )
+        kp_text = f" — Kp {kp:.0f}, {aurora_latitude(kp)}" if kp is not None else ""
+        target = future if arrival >= now else recent
+        target.append((arrival, {"text": f"{arrival_text}{kp_text}", "url": cme.link}))
+    future.sort(key=lambda pair: pair[0])
+    recent.sort(key=lambda pair: pair[0], reverse=True)
+    return future, recent
 
 
 def _timeline(
-    evs: list[Any],
+    flares: list[Flare],
     storms: list[Storm],
     arrivals: list[CME],
+    pending_impacts: list[CME],
     *,
-    week_ago: dt.datetime,
     now: dt.datetime,
-) -> list[tuple[dt.datetime, dict]]:
-    """The newest-first timeline rows: recent flares, active storms, and CME arrivals."""
-    items: list[tuple[dt.datetime, dict]] = []
-    for event in evs:
-        if isinstance(event, Flare) and event.peak_time is not None and event.peak_time >= week_ago:
-            region = f" — AR{event.active_region}" if event.active_region else ""
-            items.append(
-                (event.peak_time, {"text": f"{event.class_type} flare{region}", "url": event.link})
+) -> list[tuple[dt.datetime | None, dict]]:
+    """Put nearest future forecasts first, followed by newest recent observations."""
+    pending_items: list[tuple[dt.datetime | None, dict]] = [
+        (
+            cme.start_time,
+            {
+                "text": "Earth impact expected — CME arrival time pending",
+                "url": cme.link,
+            },
+        )
+        for cme in pending_impacts
+    ]
+    pending_items.sort(
+        key=lambda pair: pair[0] or dt.datetime.min.replace(tzinfo=dt.UTC),
+        reverse=True,
+    )
+    recent_items: list[tuple[dt.datetime, dict]] = []
+    for flare in flares:
+        if flare.peak_time is not None:
+            region = f" — AR{flare.active_region}" if flare.active_region else ""
+            recent_items.append(
+                (
+                    flare.peak_time,
+                    {"text": f"{flare.class_type} flare{region}", "url": flare.link},
+                )
             )
     for storm in storms:
         start = storm.start_time
         if start is not None:  # guaranteed by the filter above; keeps the narrowing local
-            items.append(
+            kp_text = f"max Kp {storm.max_kp:.0f}" if storm.max_kp is not None else "Kp pending"
+            recent_items.append(
                 (
                     start,
-                    {"text": f"Geomagnetic storm — max Kp {storm.max_kp:.0f}", "url": storm.link},
+                    {"text": f"Geomagnetic storm — {kp_text}", "url": storm.link},
                 )
             )
-    for cme in arrivals:
-        if cme.enlil is None or cme.enlil.arrival_time is None:
-            continue  # _pending_arrivals guarantees otherwise; keeps the narrowing local
-        arrival = cme.enlil.arrival_time
-        kp = cme.enlil.predicted_kp
-        # the consumer renders when_utc beside the text, so the text must NOT
-        # repeat the timestamp — only the tense the reader can't infer from it
-        verb = "expected" if arrival >= now else "arrived"
-        kp_text = f" — Kp {kp:.0f}, {aurora_latitude(kp)}" if kp is not None else ""
-        items.append((arrival, {"text": f"CME arrival {verb}{kp_text}", "url": cme.link}))
-    items.sort(key=lambda pair: pair[0], reverse=True)
-    return items
+    future_items, recent_arrivals = _arrival_timeline(arrivals, now)
+    recent_items.extend(recent_arrivals)
+    recent_items.sort(key=lambda pair: pair[0], reverse=True)
+    return [*pending_items, *future_items, *recent_items]
+
+
+def _metric_value(count: int, *, sources_ok: bool) -> str:
+    """Report exact healthy counts and conservative lower bounds for partial data."""
+    if sources_ok:
+        return str(count)
+    return f"≥{count}" if count else "Unknown"
+
+
+def _status_item(when: dt.datetime | None, item: dict) -> dict:
+    """Serialize a timeline row, omitting the contract's optional time when unknown."""
+    out = {"text": item["text"][:140], "url": item["url"]}
+    if when is not None:
+        out["when_utc"] = when.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return out
+
+
+def _headline(
+    storms: list[Storm],
+    pending_impacts: list[CME],
+    future_arrivals: list[CME],
+    *,
+    sources_ok: bool,
+) -> str:
+    """Choose the tile's highest-signal, uncertainty-aware headline."""
+    known_storms = [storm for storm in storms if storm.max_kp is not None]
+    pending_storms = [storm for storm in storms if storm.max_kp is None]
+    if pending_impacts:
+        headline = "Earth impact expected — CME arrival time pending"
+    elif future_arrivals:
+        next_arrival = min(
+            future_arrivals,
+            key=lambda cme: (
+                cme.enlil.arrival_time
+                if cme.enlil is not None and cme.enlil.arrival_time is not None
+                else dt.datetime.max.replace(tzinfo=dt.UTC)
+            ),
+        )
+        kp = next_arrival.enlil.predicted_kp if next_arrival.enlil is not None else None
+        kp_note = f" — predicted Kp {kp:.0f}" if kp is not None else ""
+        headline = f"Earth-arrival forecast active{kp_note}"
+    elif known_storms:
+        worst = max(known_storms, key=lambda storm: storm.max_kp or 0)
+        pending_note = "; another storm has Kp pending" if pending_storms else ""
+        qualifier = "known " if pending_storms else ""
+        headline = f"Recent geomagnetic storm — max {qualifier}Kp {worst.max_kp:.0f}{pending_note}"
+    elif storms:
+        headline = "Recent geomagnetic storm — Kp pending"
+    elif not sources_ok:
+        return "DONKI data incomplete"
+    else:
+        return "No recent geomagnetic storms"
+    return f"{headline} · data incomplete" if not sources_ok else headline
+
+
+def _metrics(
+    big_flares: list[Flare],
+    future_arrivals: list[CME],
+    recent_arrivals: list[CME],
+    pending_impacts: list[CME],
+    *,
+    sources_ok: bool,
+) -> list[dict[str, str]]:
+    """Build exact healthy metrics or conservative partial-data values."""
+    return [
+        {
+            "label": "M+X flares · 7d",
+            "value": _metric_value(len(big_flares), sources_ok=sources_ok),
+        },
+        {
+            "label": "Future CME arrival forecasts",
+            "value": _metric_value(len(future_arrivals), sources_ok=sources_ok),
+        },
+        {
+            "label": f"Recent CME model times · {config.RELEVANCE_WINDOW_H}h",
+            "value": _metric_value(len(recent_arrivals), sources_ok=sources_ok),
+        },
+        {
+            "label": "Earth impacts · ETA pending",
+            "value": _metric_value(len(pending_impacts), sources_ok=sources_ok),
+        },
+    ]
 
 
 def build(
@@ -93,35 +185,14 @@ def build(
     sources_ok: bool,
 ) -> dict:
     """The status.json document, from the same inputs render_site receives."""
-    cutoff = now - dt.timedelta(hours=config.RELEVANCE_WINDOW_H)
-    evs = _episode_events(episodes, events)
+    evs = summary.episode_events(episodes, events)
+    storms = summary.recent_storms(evs, now)
+    pending_impacts = summary.pending_earth_impacts(episodes, events, now)
+    big_flares = summary.recent_major_flares(evs, now)
+    future_arrivals, recent_arrivals = summary.arrival_buckets(evs, now)
+    arrivals = [*future_arrivals, *recent_arrivals]
 
-    storms = [
-        s
-        for s in evs
-        if isinstance(s, Storm)
-        and s.max_kp is not None
-        and s.start_time is not None
-        and s.start_time >= cutoff
-    ]
-    if storms:
-        worst = max(storms, key=lambda s: s.max_kp or 0)
-        headline = f"Geomagnetic storm — Kp {worst.max_kp:.0f}"
-    else:
-        headline = "Geomagnetically quiet"
-
-    week_ago = now - dt.timedelta(days=7)
-    big_flares = [
-        f
-        for f in evs
-        if isinstance(f, Flare)
-        and f.peak_time is not None
-        and f.peak_time >= week_ago
-        and f.class_type[:1] in ("M", "X")
-    ]
-    arrivals = _pending_arrivals(evs, now)
-
-    items = _timeline(evs, storms, arrivals, week_ago=week_ago, now=now)
+    items = _timeline(big_flares, storms, arrivals, pending_impacts, now=now)
 
     return {
         "schema": 1,
@@ -129,19 +200,20 @@ def build(
         "title": "Space-Weather Watch",
         "site": _SITE_URL,
         "updated_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "fresh_for_hours": 3,
+        "fresh_for_hours": config.SITE_FRESH_FOR_HOURS,
         "ok": sources_ok,
-        "headline": headline[:120],
-        "metrics": [
-            {"label": "M+X flares · 7d", "value": str(len(big_flares))},
-            {"label": "CME arrivals pending", "value": str(len(arrivals))},
-        ],
-        "items": [
-            {
-                "when_utc": when.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "text": item["text"][:140],
-                "url": item["url"],
-            }
-            for when, item in items[:5]
-        ],
+        "headline": _headline(
+            storms,
+            pending_impacts,
+            future_arrivals,
+            sources_ok=sources_ok,
+        )[:120],
+        "metrics": _metrics(
+            big_flares,
+            future_arrivals,
+            recent_arrivals,
+            pending_impacts,
+            sources_ok=sources_ok,
+        ),
+        "items": [_status_item(when, item) for when, item in items[:5]],
     }

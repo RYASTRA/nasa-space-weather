@@ -55,6 +55,7 @@ SOURCE_FAILURE_LIMIT = 3
 
 # --- Output ---
 SITE_ENABLED = True
+SITE_FRESH_FOR_HOURS = 3
 
 # --- Endpoints (ALL on api.nasa.gov: one host, one key, one quota — they fail together) ---
 DONKI_ROOT = "https://api.nasa.gov/DONKI"
